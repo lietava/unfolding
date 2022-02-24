@@ -56,76 +56,66 @@ Double_t calcChi2(TH1* h1, TH1* h2, int nbins) {
     }
     return chi2;
 }
-int test(){
+RooUnfoldResponse* getResponseFromFile() {
+    TFile *file = new TFile("download/UnfoldedClosureHe_10.root");
+    RooUnfoldResponse* response = (RooUnfoldResponse*) file->Get("response;1");
+    return response;
+}
+int test2(){
 	//gSystem->Load("/home/rl/RooUnfold/libRooUnfol");	
+        //
+        RooUnfoldResponse * res = getResponseFromFile();
+        //res->Hresponse()->Draw();
+        //return 0;
 	Int_t Ndata = 10000; 
 	Double_t* datagen = new Double_t[Ndata];
-	Double_t* datarec = new Double_t[Ndata];
+        //Double_t* datarec = new Double_t[Ndata];
         Double_t* datagen2 = new Double_t[Ndata];
-        Double_t* datarec2 = new Double_t[Ndata];
+        //Double_t* datarec2 = new Double_t[Ndata];
 	//
         generate_data(Ndata,datagen);
         generate_data_sin(Ndata,datagen2);
-	reconstruct_data(Ndata,datagen,datarec);
-        reconstruct_data(Ndata,datagen2,datarec2);
-	// Create bins
-        //std::vector<Double_t> vbins = {0,1.14,2,3,4,5,2*TMath::Pi()};
-        std::vector<Double_t> vbins = uniformbins(11);
-	//
-	Int_t nbins = vbins.size()-1;
-	Double_t *bins = new Double_t[nbins+1];
-	for(int i = 0; i < (nbins+1); i++) bins[i] = vbins[i];
-        std:cout << "N data bins:" << nbins << std::endl;
+
+        //
+        
 	// Create histos
-        TH1D *hdatagen = new TH1D("data gen","data generated",nbins,bins);
-        TH1D *hdatagen_rec = new TH1D("data gen rec","data generated&reconstructed",nbins,bins);
-        TH1D *hdatarec = new TH1D("data rec","data reconstructed",nbins,bins);
-        TH1D *hres = new TH1D("resolution","resolution",20,-2,2);
+        TH1D *hdatagen = (TH1D*)res->Htruth()->Clone();
+        Int_t nbins = hdatagen->GetNbinsX();
+        hdatagen->Reset("ICESM");
+        //TH1D *hdatagen_rec = new TH1D("data gen rec","data generated&reconstructed",nbins,bins);
+        //TH1D *hdatarec = res->Hmeasured()->Clone();
+        //TH1D* hfolded = (TH1D*)response.ApplyToTruth(hdatagen);
         Double_t* datagenh = datagen2;
-        Double_t* datarech = datarec2;
-	for(int i = 0; i < Ndata; i++) {
+        //Double_t* datarech = datarec;
+        for(int i = 0; i < Ndata; i++) {
                 hdatagen->Fill(datagenh[i]);
-                if(datarech[i] >= 0) {
-                        hdatarec->Fill(datarech[i]);
-                        hdatagen_rec-> Fill(datagenh[i]);
-                        hres->Fill(datagenh[i]-datarech[i]);
-		}
-	}
-	// Response
-	RooUnfoldResponse response(hdatarec,hdatagen);
-        // choose data set
-        Double_t* datagenr = datagen;
-        Double_t* datarecr = datarec;
-	for(int i  = 0; i < Ndata; i++) {
-		//std::cout << i << " response" << " gen:" << datagen[i] << " rec:" << datarec[i] << std::endl;
-                if(datarecr[i] >= 0)
-                  response.Fill(datarecr[i],datagenr[i]);
-		else
-                  response.Miss(datagenr[i]);
-	}
-        // Generated folded
-	TH1D* hfolded = (TH1D*)response.ApplyToTruth(hdatagen);
-	//
+        }
+        // Response
+        RooUnfoldResponse* response = res;;
+        // Reconstruct
+        TH1D* hdatarec = (TH1D*)response->ApplyToTruth(hdatagen);
+
+        //
         // Reconstructed Unfolded
-        RooUnfoldBayes unfold(&response, hdatarec, 10);
+        RooUnfoldBayes unfold(response, hdatarec, 10);
 	TH1D* hunfold = (TH1D*) unfold.Hreco();
         Double_t chi2 = calcChi2(hdatagen,hunfold,nbins);
         std::cout << "chi2 gen-unfold:" << chi2 << std::endl;
 	// Folding back
-	TH1D* hrefold = (TH1D*)response.ApplyToTruth(hunfold);
+        TH1D* hrefold = (TH1D*)response->ApplyToTruth(hunfold);
         chi2 = calcChi2(hdatarec,hrefold,nbins);
         std::cout << "chi2 rec-refold:" << chi2 << std::endl;
 
 	//
 	TFile *myfile = new TFile("unfold.root", "RECREATE");
-	hdatagen->Write();
+        hdatagen->Write("generated");
 	hdatarec->Write();
 	hunfold->Write("unfolded");
-	hfolded->Write("folded");
+        //hfolded->Write("folded");
 	hrefold->Write("hrefold");
-	hdatagen_rec->Write();
-        hres->Write();
-	response.Hresponse()->Write("Response");
+        //hdatagen_rec->Write();
+        //hres->Write();
+        response->Hresponse()->Write("Response");
 	myfile->Close();
 	return 0;
 }

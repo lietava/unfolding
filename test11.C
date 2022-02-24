@@ -56,18 +56,18 @@ Double_t calcChi2(TH1* h1, TH1* h2, int nbins) {
     }
     return chi2;
 }
-int test(){
+int test11(){
 	//gSystem->Load("/home/rl/RooUnfold/libRooUnfol");	
 	Int_t Ndata = 10000; 
 	Double_t* datagen = new Double_t[Ndata];
 	Double_t* datarec = new Double_t[Ndata];
-        Double_t* datagen2 = new Double_t[Ndata];
-        Double_t* datarec2 = new Double_t[Ndata];
+        Double_t* datagen_sin = new Double_t[Ndata];
+        Double_t* datarec_sin = new Double_t[Ndata];
 	//
         generate_data(Ndata,datagen);
-        generate_data_sin(Ndata,datagen2);
+        generate_data_sin(Ndata,datagen_sin);
 	reconstruct_data(Ndata,datagen,datarec);
-        reconstruct_data(Ndata,datagen2,datarec2);
+        reconstruct_data(Ndata,datagen_sin,datarec_sin);
 	// Create bins
         //std::vector<Double_t> vbins = {0,1.14,2,3,4,5,2*TMath::Pi()};
         std::vector<Double_t> vbins = uniformbins(11);
@@ -81,8 +81,8 @@ int test(){
         TH1D *hdatagen_rec = new TH1D("data gen rec","data generated&reconstructed",nbins,bins);
         TH1D *hdatarec = new TH1D("data rec","data reconstructed",nbins,bins);
         TH1D *hres = new TH1D("resolution","resolution",20,-2,2);
-        Double_t* datagenh = datagen2;
-        Double_t* datarech = datarec2;
+        Double_t* datagenh = datagen_sin;
+        Double_t* datarech = datarec_sin;
 	for(int i = 0; i < Ndata; i++) {
                 hdatagen->Fill(datagenh[i]);
                 if(datarech[i] >= 0) {
@@ -107,8 +107,19 @@ int test(){
 	TH1D* hfolded = (TH1D*)response.ApplyToTruth(hdatagen);
 	//
         // Reconstructed Unfolded
-        RooUnfoldBayes unfold(&response, hdatarec, 10);
-	TH1D* hunfold = (TH1D*) unfold.Hreco();
+        //RooUnfoldBayes unfold(&response, hdatarec, 10);
+        RooUnfoldBayes unfold("bayes","bayes");
+        unfold.SetVerbose(1);
+        unfold.SetResponse(&response);
+        unfold.SetMeasured(hdatarec);
+        unfold.SetIterations(40);
+        unfold.SetSmoothing(0);
+        unfold.SetPriors(hdatarec);
+        //unfold.Unfold();
+        TH1D* hunfold = (TH1D*) unfold.Hreco();
+        //unfold.SetPriors(hdatarec);
+
+        //return 0;
         Double_t chi2 = calcChi2(hdatagen,hunfold,nbins);
         std::cout << "chi2 gen-unfold:" << chi2 << std::endl;
 	// Folding back
