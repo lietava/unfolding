@@ -8,7 +8,7 @@ int generate_data(int Ndata,Double_t* gen) {
 }
 //
 int generate_data_sin(int Ndata,Double_t* gen) {
-        TF1 *fun = new TF1("fun","sin(x)",0,2*TMath::Pi());
+        TF1 *fun = new TF1("fun","(sin(x))",0,2*TMath::Pi());
         for(int i =0; i<Ndata; i++) gen[i] = fun->GetRandom();
         return 0;
 }
@@ -81,8 +81,10 @@ int test11(){
         TH1D *hdatagen_rec = new TH1D("data gen rec","data generated&reconstructed",nbins,bins);
         TH1D *hdatarec = new TH1D("data rec","data reconstructed",nbins,bins);
         TH1D *hres = new TH1D("resolution","resolution",20,-2,2);
-        Double_t* datagenh = datagen_sin;
-        Double_t* datarech = datarec_sin;
+        //Double_t* datagenh = datagen_sin;
+        //Double_t* datarech = datarec_sin;
+        Double_t* datagenh = datagen;
+        Double_t* datarech = datarec;
 	for(int i = 0; i < Ndata; i++) {
                 hdatagen->Fill(datagenh[i]);
                 if(datarech[i] >= 0) {
@@ -112,9 +114,9 @@ int test11(){
         unfold.SetVerbose(1);
         unfold.SetResponse(&response);
         unfold.SetMeasured(hdatarec);
-        unfold.SetIterations(40);
+        unfold.SetIterations(10);
         unfold.SetSmoothing(0);
-        unfold.SetPriors(hdatarec);
+        unfold.SetPriors(hdatagen);
         //unfold.Unfold();
         TH1D* hunfold = (TH1D*) unfold.Hreco();
         //unfold.SetPriors(hdatarec);
@@ -131,10 +133,10 @@ int test11(){
 	TFile *myfile = new TFile("unfold.root", "RECREATE");
 	hdatagen->Write();
 	hdatarec->Write();
-	hunfold->Write("unfolded");
-	hfolded->Write("folded");
-	hrefold->Write("hrefold");
-	hdatagen_rec->Write();
+        hunfold->Write("unfolded: R-1*meas");
+        hfolded->Write("folded: R*gen");
+        hrefold->Write("hrefold: R*unfolded");
+        hdatagen_rec->Write("Data rec");
         hres->Write();
 	response.Hresponse()->Write("Response");
 	myfile->Close();
