@@ -109,13 +109,13 @@ int test11(){
 	TH1D* hfolded = (TH1D*)response.ApplyToTruth(hdatagen);
 	//
         // Reconstructed Unfolded
-        //RooUnfoldBayes unfold(&response, hdatarec, 10);
-        RooUnfoldBayes unfold("bayes","bayes");
+        RooUnfoldBayes unfold(&response, hdatarec, 10);
+        //RooUnfoldBayes unfold("bayes","bayes");
         unfold.SetVerbose(1);
-        unfold.SetResponse(&response);
-        unfold.SetMeasured(hdatarec);
-        unfold.SetIterations(10);
-        unfold.SetSmoothing(0);
+        //unfold.SetResponse(&response);
+        //unfold.SetMeasured(hdatarec);
+        //unfold.SetIterations(10);
+        //unfold.SetSmoothing(0);
         unfold.SetPriors(hdatagen);
         //unfold.Unfold();
         TH1D* hunfold = (TH1D*) unfold.Hreco();
